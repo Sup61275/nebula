@@ -330,7 +330,7 @@ class MainActivity : AppCompatActivity() {
         if(enable){
             WindowCompat.setDecorFitsSystemWindows(window, false)
             WindowInsetsControllerCompat(window, binding.root).let { controller ->
-                controller.hide(WindowInsetsCompat.Type.systemBars())
+               
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         }else{
