@@ -48,18 +48,44 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textview.MaterialTextView
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import android.app.Activity
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import android.provider.MediaStore
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
     private var printJob: PrintJob? = null
+    private lateinit var sharedPreferences: SharedPreferences
+    private val WALLPAPER_PREF = "wallpaper_preference"
+    private val WALLPAPER_KEY = "wallpaper_path"
 
     companion object{
+        private const val PERMISSION_REQUEST_CODE = 100
         var tabsList: ArrayList<Tab> = ArrayList()
         private var isFullscreen: Boolean = true
         var isDesktopSite: Boolean = false
@@ -76,8 +102,13 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize SharedPreferences and load wallpaper after setting content view
+        sharedPreferences = getSharedPreferences(WALLPAPER_PREF, Context.MODE_PRIVATE)
+
 
         getAllBookmarks()
 
@@ -88,7 +119,132 @@ class MainActivity : AppCompatActivity() {
         tabsBtn = binding.tabsBtn
 
         initializeView()
+        // Load wallpaper after view is set up
+        binding.root.post {
+            loadSavedWallpaper()
+        }
         changeFullscreen(enable = true)
+    }
+    private val getContent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                setWallpaper(uri)
+                saveWallpaperPath(uri.toString())
+            }
+        }
+    }
+
+    private fun openPhotoPicker() {
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                val intent = Intent(MediaStore.ACTION_PICK_IMAGES)
+                intent.type = "image/*"
+                getContent.launch(intent)
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT -> {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "image/*"
+                }
+                getContent.launch(intent)
+            }
+            else -> {
+                val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                getContent.launch(intent)
+            }
+        }
+    }
+    private fun saveBitmapToInternalStorage(bitmap: Bitmap): String? {
+        return try {
+            val fileName = "wallpaper.jpg"
+            openFileOutput(fileName, Context.MODE_PRIVATE).use { stream ->
+                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, stream)) {
+                    throw IOException("Couldn't save bitmap.")
+                }
+            }
+            fileName
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
+    private fun setWallpaper(uri: Uri) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, uri))
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(contentResolver, uri)
+                }
+
+                val fileName = saveBitmapToInternalStorage(bitmap)
+                if (fileName != null) {
+                    withContext(Dispatchers.Main) {
+                        // Update MainActivity background
+                        window.decorView.background = BitmapDrawable(resources, bitmap)
+
+                        saveWallpaperPath(fileName)
+
+                        // Update all fragments
+                        updateAllFragments()
+                    }
+                } else {
+                    throw IOException("Failed to save bitmap")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to set wallpaper", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to set wallpaper: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun updateAllFragments() {
+        for (fragment in supportFragmentManager.fragments) {
+            when (fragment) {
+                is HomeFragment -> fragment.updateWallpaper()
+                // Add other fragments here if they also need to update their wallpaper
+            }
+        }
+    }
+
+    // Add this method to allow fragments to access the current wallpaper
+    fun getCurrentWallpaper(): Drawable? {
+        return window.decorView.background
+    }
+
+
+
+    private fun saveWallpaperPath(path: String) {
+        sharedPreferences.edit().putString(WALLPAPER_KEY, path).apply()
+    }
+
+    private fun loadSavedWallpaper() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val savedPath = sharedPreferences.getString(WALLPAPER_KEY, null)
+                if (savedPath != null) {
+                    val file = File(filesDir, savedPath)
+                    if (file.exists()) {
+                        val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                        withContext(Dispatchers.Main) {
+                            binding.root.background = BitmapDrawable(resources, bitmap)
+                        }
+                    } else {
+                        Log.w("MainActivity", "Saved wallpaper file not found")
+                    }
+                } else {
+                    Log.w("MainActivity", "No saved wallpaper path found")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failed to load wallpaper", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to load wallpaper: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -206,13 +362,11 @@ class MainActivity : AppCompatActivity() {
             dialogBinding.backBtn.setOnClickListener {
                 onBackPressed()
             }
+            dialogBinding.wallpaperBtn.setOnClickListener {
 
-            dialogBinding.forwardBtn.setOnClickListener {
-                frag?.apply {
-                    if(binding.webView.canGoForward())
-                        binding.webView.goForward()
-                }
+                openPhotoPicker()
             }
+
 
             dialogBinding.saveBtn.setOnClickListener {
                 dialog.dismiss()
@@ -306,6 +460,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
     override fun onResume() {
         super.onResume()
         printJob?.let {
@@ -368,7 +523,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
 }
+
 
 @SuppressLint("NotifyDataSetChanged")
 fun changeTab(url: String, fragment: Fragment, isBackground: Boolean = false){

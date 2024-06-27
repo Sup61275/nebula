@@ -1,6 +1,10 @@
 package com.example.nebula.fragment
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,18 +20,26 @@ import com.example.nebula.activity.checkForInternet
 import com.example.nebula.adapter.BookmarkAdapter
 import com.example.nebula.databinding.FragmentHomeBinding
 import com.google.android.material.snackbar.Snackbar
-
+import java.io.File
 
 
 class HomeFragment : Fragment() {
 
     private lateinit var binding: FragmentHomeBinding
+    private lateinit var sharedPreferences: SharedPreferences
+    private val WALLPAPER_PREF = "wallpaper_preference"
+    private val WALLPAPER_KEY = "wallpaper_path"
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_home, container, false)
         binding = FragmentHomeBinding.bind(view)
-
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        sharedPreferences = requireActivity().getSharedPreferences(WALLPAPER_PREF, Context.MODE_PRIVATE)
+        loadWallpaper()
     }
 
     override fun onResume() {
@@ -73,5 +85,26 @@ class HomeFragment : Fragment() {
         binding.viewAllBtn.setOnClickListener {
             startActivity(Intent(requireContext(), BookmarkActivity::class.java))
         }
+    }
+
+    fun loadWallpaper() {
+        val savedPath = sharedPreferences.getString(WALLPAPER_KEY, null)
+        if (savedPath != null) {
+            val file = File(requireContext().filesDir, savedPath)
+            if (file.exists()) {
+                val bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                binding.root.background = BitmapDrawable(resources, bitmap)
+            } else {
+                // If file doesn't exist, set default wallpaper
+                binding.root.setBackgroundResource(R.drawable.defaultwallpaper)
+            }
+        } else {
+            // If no saved path, set default wallpaper
+            binding.root.setBackgroundResource(R.drawable.defaultwallpaper)
+        }
+    }
+
+    fun updateWallpaper() {
+        loadWallpaper()
     }
 }

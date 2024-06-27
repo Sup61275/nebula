@@ -24,12 +24,12 @@
             android:textAllCaps="false"/>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/forwardBtn"
+            android:id="@+id/wallpaperBtn"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            app:icon="@drawable/ic_forward"
-            android:text="@string/forward"
+            app:icon="@drawable/baseline_collections_24"
+            android:text="@string/wallpaper"
             app:iconGravity="top"
             android:background="?attr/selectableItemBackground"
             app:iconTint="@color/black"
@@ -82,6 +82,8 @@
             app:iconTint="@color/black"
             android:textColor="@color/black"
             android:textAllCaps="false"/>
+
+
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/fullscreenBtn"
