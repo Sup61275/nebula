@@ -19,6 +19,7 @@ import com.example.nebula.activity.changeTab
 import com.example.nebula.activity.checkForInternet
 import com.example.nebula.adapter.BookmarkAdapter
 import com.example.nebula.databinding.FragmentHomeBinding
+import com.example.nebula.utils.SpaceItemDecoration
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
 
@@ -74,6 +75,8 @@ class HomeFragment : Fragment() {
             else
                 Snackbar.make(binding.root, "Internet Not Connected\uD83D\uDE03", 3000).show()
         }
+        val spaceHeight = 16 // Adjust this value as needed
+        binding.recyclerView.addItemDecoration(SpaceItemDecoration(spaceHeight))
 
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.setItemViewCacheSize(5)
