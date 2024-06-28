@@ -90,10 +90,20 @@ class MainActivity : AppCompatActivity() {
         var tabsList: ArrayList<Tab> = ArrayList()
         private var isFullscreen: Boolean = true
         var isDesktopSite: Boolean = false
-        var bookmarkList: ArrayList<Bookmark> = ArrayList()
+        var bookmarkList: MutableList<Bookmark> = mutableListOf()
         var bookmarkIndex: Int = -1
         lateinit var myPager: ViewPager2
         lateinit var tabsBtn: MaterialTextView
+
+        val defaultBookmarks = listOf(
+            Bookmark("Google", "https://www.google.com", imageResource = R.drawable.google),
+            Bookmark("Amazon", "https://www.amazon.com", imageResource = R.drawable.amazon),
+            Bookmark("Flipkart", "https://www.flipkart.com", imageResource = R.drawable.flipkart),
+            Bookmark("Facebook", "https://www.facebook.com", imageResource = R.drawable.facebook),
+            Bookmark("Instagram", "https://www.instagram.com", imageResource = R.drawable.instagram),
+            Bookmark("Netflix", "https://www.netflix.com", imageResource = R.drawable.netflix),
+
+        )
     }
 
 
@@ -430,15 +440,16 @@ class MainActivity : AppCompatActivity() {
                             .setTitle("Add Bookmark")
                             .setMessage("Url:${it.binding.webView.url}")
                             .setPositiveButton("Add"){self, _ ->
-                                try{
+                                try {
                                     val array = ByteArrayOutputStream()
-                                    it.webIcon?.compress(Bitmap.CompressFormat.PNG, 100, array)
+                                    it.webIcon?.compress(Bitmap.CompressFormat.PNG, 200, array)
                                     bookmarkList.add(
-                                        Bookmark(name = bBinding.bookmarkTitle.text.toString(), url = it.binding.webView.url!!, array.toByteArray()))
-                                }
-                                catch(e: Exception){
+                                        Bookmark(name = bBinding.bookmarkTitle.text.toString(), url = it.binding.webView.url!!, image = array.toByteArray())
+                                    )
+                                } catch (e: Exception) {
                                     bookmarkList.add(
-                                        Bookmark(name = bBinding.bookmarkTitle.text.toString(), url = it.binding.webView.url!!))
+                                        Bookmark(name = bBinding.bookmarkTitle.text.toString(), url = it.binding.webView.url!!)
+                                    )
                                 }
                                 self.dismiss()}
                             .setNegativeButton("Cancel"){self, _ -> self.dismiss()}
@@ -525,6 +536,11 @@ class MainActivity : AppCompatActivity() {
             val list: ArrayList<Bookmark> = GsonBuilder().create().fromJson(data, object: TypeToken<ArrayList<Bookmark>>(){}.type)
             bookmarkList.addAll(list)
         }
+        // If no bookmarks are saved, add default bookmarks
+        if (bookmarkList.isEmpty()) {
+            bookmarkList.addAll(defaultBookmarks)
+            saveBookmarks() // Save default bookmarks
+        }
     }
 
 
@@ -532,12 +548,17 @@ class MainActivity : AppCompatActivity() {
 
 
 @SuppressLint("NotifyDataSetChanged")
-fun changeTab(url: String, fragment: Fragment, isBackground: Boolean = false){
-    MainActivity.tabsList.add(Tab(name = url, fragment = fragment))
-    myPager.adapter?.notifyDataSetChanged()
-    tabsBtn.text = MainActivity.tabsList.size.toString()
+fun changeTab(url: String, fragment: Fragment, isBackground: Boolean = false) {
+    if (MainActivity.bookmarkList.none { it.url == url }) {
+        MainActivity.tabsList.add(Tab(name = url, fragment = fragment))
+        myPager.adapter?.notifyDataSetChanged()
+        tabsBtn.text = MainActivity.tabsList.size.toString()
 
-    if(!isBackground) myPager.currentItem = MainActivity.tabsList.size - 1
+        if (!isBackground) myPager.currentItem = MainActivity.tabsList.size - 1
+    } else {
+        // Show a message that the bookmark already exists
+        Toast.makeText(myPager.context, "Already bookmarked", Toast.LENGTH_SHORT).show()
+    }
 }
 
 fun checkForInternet(context: Context): Boolean {

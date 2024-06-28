@@ -110,7 +110,7 @@ class BrowseFragment(private var urlNew: String) : Fragment() {
                         if(MainActivity.bookmarkIndex != -1){
                             val array = ByteArrayOutputStream()
                             icon!!.compress(Bitmap.CompressFormat.PNG, 100, array)
-                            MainActivity.bookmarkList[MainActivity.bookmarkIndex].image = array.toByteArray()
+                            MainActivity.bookmarkList[MainActivity.bookmarkIndex] = MainActivity.bookmarkList[MainActivity.bookmarkIndex].copy(image = array.toByteArray())
                         }
                     }catch (e: Exception){}
                 }

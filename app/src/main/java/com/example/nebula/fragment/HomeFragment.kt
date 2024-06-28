@@ -41,6 +41,27 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         sharedPreferences = requireActivity().getSharedPreferences(WALLPAPER_PREF, Context.MODE_PRIVATE)
         loadWallpaper()
+        binding.viewAllBtn.setOnClickListener {
+            val intent = Intent(requireContext(), BookmarkActivity::class.java)
+            startActivity(intent)
+        }
+
+        updateBookmarksList()
+
+    }
+    private fun updateBookmarksList() {
+        val combinedList = (MainActivity.bookmarkList + MainActivity.defaultBookmarks).distinctBy { it.url }
+        val displayList = combinedList.take(10) // Show only 2 rows (5 items per row)
+
+        val layoutManager = object : GridLayoutManager(requireContext(), 5) {
+            override fun canScrollVertically(): Boolean {
+                return false // Disable vertical scrolling
+            }
+        }
+        binding.recyclerView.layoutManager = layoutManager
+        binding.recyclerView.adapter = BookmarkAdapter(requireContext(), false)
+
+        binding.viewAllBtn.visibility = if (combinedList.size > 10) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
@@ -52,23 +73,36 @@ class HomeFragment : Fragment() {
         MainActivity.tabsList[MainActivity.myPager.currentItem].name = "Home"
 
         mainActivityRef.binding.topSearchBar.setText("")
-        binding.searchView.setQuery("",false)
+        binding.searchView.setQuery("", false)
         mainActivityRef.binding.webIcon.setImageResource(R.drawable.ic_search)
 
-        mainActivityRef.binding.refreshBtn.visibility = View.GONE
+        val layoutManager = object : GridLayoutManager(requireContext(), 5) {
+            override fun canScrollVertically(): Boolean {
+                return false // Disable vertical scrolling
+            }
+        }
+        binding.recyclerView.layoutManager = layoutManager
+        binding.recyclerView.adapter = BookmarkAdapter(requireContext())
 
-        binding.searchView.setOnQueryTextListener(object: SearchView.OnQueryTextListener{
+        // Show "View All" button if there are more than 15 bookmarks
+        binding.viewAllBtn.visibility = if ((MainActivity.bookmarkList + MainActivity.defaultBookmarks).distinctBy { it.url }.size > 15)
+            View.VISIBLE else View.GONE
+
+        mainActivityRef.binding.refreshBtn.visibility = View.GONE
+        binding.recyclerView.adapter = BookmarkAdapter(requireContext())
+        binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(result: String?): Boolean {
-                if(checkForInternet(requireContext()))
+                if (checkForInternet(requireContext()))
                     changeTab(result!!, BrowseFragment(result))
                 else
                     Snackbar.make(binding.root, "Internet Not Connected\uD83D\uDE03", 3000).show()
                 return true
             }
+
             override fun onQueryTextChange(p0: String?): Boolean = false
         })
         mainActivityRef.binding.goBtn.setOnClickListener {
-            if(checkForInternet(requireContext()))
+            if (checkForInternet(requireContext()))
                 changeTab(mainActivityRef.binding.topSearchBar.text.toString(),
                     BrowseFragment(mainActivityRef.binding.topSearchBar.text.toString())
                 )
@@ -80,15 +114,16 @@ class HomeFragment : Fragment() {
 
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.setItemViewCacheSize(5)
-        binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 5)
-        binding.recyclerView.adapter = BookmarkAdapter(requireContext())
+        binding.recyclerView.isNestedScrollingEnabled = false // Ensure nested scrolling is disabled
 
-        if(MainActivity.bookmarkList.size < 1)
-            binding.viewAllBtn.visibility = View.GONE
-        binding.viewAllBtn.setOnClickListener {
-            startActivity(Intent(requireContext(), BookmarkActivity::class.java))
+        if (MainActivity.bookmarkList.size < 1 && MainActivity.defaultBookmarks.isNotEmpty()) {
+            binding.viewAllBtn.visibility = View.VISIBLE
+        } else {
+            binding.viewAllBtn.visibility = if (MainActivity.bookmarkList.size > 5) View.VISIBLE else View.GONE
         }
     }
+
+
 
     fun loadWallpaper() {
         val savedPath = sharedPreferences.getString(WALLPAPER_KEY, null)
