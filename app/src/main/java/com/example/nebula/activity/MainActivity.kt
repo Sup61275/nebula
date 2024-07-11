@@ -1,6 +1,7 @@
 package com.example.nebula.activity
 
 
+import android.Manifest
 import com.example.nebula.R
 
 import android.annotation.SuppressLint
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         var bookmarkIndex: Int = -1
         lateinit var myPager: ViewPager2
         lateinit var tabsBtn: MaterialTextView
+        private const val AUDIO_PERMISSION_REQUEST_CODE = 1002
 
         val defaultBookmarks = listOf(
             Bookmark("Google", "https://www.google.com", imageResource = R.drawable.google),
@@ -138,6 +140,10 @@ class MainActivity : AppCompatActivity() {
             loadSavedWallpaper()
         }
         changeFullscreen(enable = true)
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_REQUEST_CODE)
+        }
     }
     private val getContent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -227,6 +233,19 @@ class MainActivity : AppCompatActivity() {
     // Add this method to allow fragments to access the current wallpaper
     fun getCurrentWallpaper(): Drawable? {
         return window.decorView.background
+    }
+
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == AUDIO_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, you can now use voice search
+            } else {
+                // Permission denied, inform the user that voice search won't work
+                Toast.makeText(this, "Voice search requires audio permission", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
 

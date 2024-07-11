@@ -1,5 +1,6 @@
 package com.example.nebula.fragment
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -36,7 +37,7 @@ class HomeFragment : Fragment() {
     private lateinit var searchView: SearchView
     private lateinit var micButton: ImageView
 
-
+    private val VOICE_SEARCH_REQUEST_CODE = 1001
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_home, container, false)
@@ -49,10 +50,12 @@ class HomeFragment : Fragment() {
         val customSearchView = view.findViewById<View>(R.id.custom_search_view)
         searchView = customSearchView.findViewById(R.id.search_view)
         micButton = customSearchView.findViewById(R.id.search_mic)
+
         micButton.setOnClickListener {
             val intent = Intent(requireContext(), VoiceSearchActivity::class.java)
-            startActivity(intent)
+            startActivityForResult(intent, VOICE_SEARCH_REQUEST_CODE)
         }
+
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 // Handle search query submission
@@ -153,7 +156,16 @@ class HomeFragment : Fragment() {
         }
     }
 
-
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VOICE_SEARCH_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            val recognizedText = data?.getStringExtra("RECOGNIZED_TEXT")
+            recognizedText?.let {
+                searchView.setQuery(it, true)
+            }
+        }
+    }
 
     fun loadWallpaper() {
         val savedPath = sharedPreferences.getString(WALLPAPER_KEY, null)
