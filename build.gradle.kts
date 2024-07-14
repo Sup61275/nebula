@@ -2,7 +2,8 @@
 plugins {
     id("com.android.application") version "7.4.2" apply false
     id("com.android.library") version "7.4.2" apply false
-    id("org.jetbrains.kotlin.android") version "1.8.0" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.10" apply false
+    alias(libs.plugins.googleGmsGoogleServices) apply false
 }
 
 task("clean", Delete::class) {
@@ -10,6 +11,7 @@ task("clean", Delete::class) {
 }
 buildscript {
     dependencies {
-        classpath ("com.android.tools.build:gradle:8.1.0") // or the latest version
+        classpath (libs.gradle)
+       classpath (libs.google.services)// or the latest version
     }
 }

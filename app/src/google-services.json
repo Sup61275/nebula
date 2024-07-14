@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "399049642923",
+    "firebase_url": "https://nebula-84536-default-rtdb.firebaseio.com",
+    "project_id": "nebula-84536",
+    "storage_bucket": "nebula-84536.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:399049642923:android:f8d1011b76393b0366b8ee",
+        "android_client_info": {
+          "package_name": "com.example.nebula"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgnohP4aogsgcvZ7i6AsW-JVQaSL6wFzY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

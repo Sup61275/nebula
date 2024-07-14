@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id ("com.google.gms.google-services")
 }
 
 android {
@@ -46,15 +47,19 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation("androidx.legacy:legacy-support-v4:1.0.0")
-    implementation("com.google.code.gson:gson:2.8.9") // for storing custom objects in shared preferences
-    implementation ("com.airbnb.android:lottie:5.2.0")
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.gson) // for storing custom objects in shared preferences
+    implementation (libs.lottie)
+    implementation(libs.firebase.database)
+    implementation (platform(libs.firebase.bom))
+
+    //implementation(libs.firebase.database.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
-    implementation ("androidx.cardview:cardview:1.0.0")
-    androidTestImplementation ("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation ("androidx.test:runner:1.5.2")
-    androidTestImplementation ("androidx.test:rules:1.5.0")
-    androidTestImplementation ("androidx.test:core:1.5.07")
-    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.1")
+    implementation (libs.androidx.cardview)
+    androidTestImplementation (libs.androidx.espresso.core.v361)
+    androidTestImplementation (libs.androidx.runner)
+    androidTestImplementation (libs.androidx.rules)
+    androidTestImplementation (libs.androidx.core)
+    implementation (libs.androidx.lifecycle.runtime.ktx)
 }

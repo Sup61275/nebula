@@ -65,6 +65,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.nebula.utils.HistoryManager
+import com.google.firebase.Firebase
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ServerValue
+import com.google.firebase.database.database
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,6 +90,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private val WALLPAPER_PREF = "wallpaper_preference"
     private val WALLPAPER_KEY = "wallpaper_path"
+    private lateinit var database: DatabaseReference
+    lateinit var historyManager: HistoryManager
 
     companion object{
         private const val PERMISSION_REQUEST_CODE = 100
@@ -111,6 +118,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        database = Firebase.database.reference
+        historyManager = HistoryManager(database)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -144,6 +154,71 @@ class MainActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), AUDIO_PERMISSION_REQUEST_CODE)
         }
+        setupBottomNavigation()
+
+        testDatabaseConnection()
+    }
+    fun testDatabaseConnection() {
+        val testRef = database.child("test")
+        val testData = hashMapOf("timestamp" to ServerValue.TIMESTAMP)
+
+        testRef.setValue(testData)
+            .addOnSuccessListener {
+                Log.d("HistoryManager", "Test data written successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("HistoryManager", "Test data write failed", e)
+            }
+    }
+    private fun setupBottomNavigation() {
+        binding.bottomNavView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    // Navigate to Home Fragment
+                    changeTab("Home", HomeFragment())
+                    true
+                }
+                R.id.nav_history -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    true
+                }
+                R.id.nav_exit -> {
+                    // Show a confirmation dialog before exiting
+                    showExitConfirmationDialog()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Set Home as the default selected item
+        binding.bottomNavView.selectedItemId = R.id.nav_home
+
+
+    }
+    private fun setupSystemBars() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            window.navigationBarColor = Color.TRANSPARENT
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowInsetsControllerCompat(window, binding.root).let { controller ->
+                controller.isAppearanceLightNavigationBars = true
+            }
+        } else {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            window.navigationBarColor = Color.parseColor("#80654321")
+        }
+    }
+    private fun showExitConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Exit App")
+            .setMessage("Are you sure you want to exit?")
+            .setPositiveButton("Yes") { _, _ ->
+                finish()
+            }
+            .setNegativeButton("No", null)
+            .show()
     }
     private val getContent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -599,3 +674,4 @@ fun checkForInternet(context: Context): Boolean {
         return networkInfo.isConnected
     }
 }
+

@@ -13,6 +13,7 @@ import android.os.Handler
 import android.provider.MediaStore
 import android.text.SpannableStringBuilder
 import android.util.Base64
+import android.util.Log
 import android.view.*
 import android.webkit.*
 import androidx.core.app.ShareCompat
@@ -82,10 +83,19 @@ class BrowseFragment(private var urlNew: String) : Fragment() {
 
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     super.doUpdateVisitedHistory(view, url, isReload)
-                    mainRef.binding.topSearchBar.text = SpannableStringBuilder(url)
-                    MainActivity.tabsList[MainActivity.myPager.currentItem].name = url.toString()
-                }
 
+                    url?.let { nonNullUrl ->
+                        mainRef.binding.topSearchBar.text = SpannableStringBuilder(nonNullUrl)
+                        MainActivity.tabsList[MainActivity.myPager.currentItem].name = nonNullUrl
+
+                        // Save to history
+                        val title = view?.title ?: ""
+                        (activity as? MainActivity)?.historyManager?.saveHistoryItem(nonNullUrl, title)
+
+                        // Add logging
+                        Log.d("BrowseFragment", "Saving history: URL=$nonNullUrl, Title=$title")
+                    }
+                }
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     mainRef.binding.progressBar.progress = 0
@@ -93,11 +103,19 @@ class BrowseFragment(private var urlNew: String) : Fragment() {
                     if(url!!.contains("you", ignoreCase = false)) mainRef.binding.root.transitionToEnd()
                 }
 
+
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    mainRef.binding.progressBar.visibility = View.GONE
-                    binding.webView.zoomOut()
+                    view?.post {
+                        if (isAdded && activity != null) {
+                            url?.let { nonNullUrl ->
+                                val title = view.title ?: ""
+                                (activity as? MainActivity)?.historyManager?.saveHistoryItem(nonNullUrl, title)
+                            }
+                        }
+                    }
                 }
+
             }
             webChromeClient = object: WebChromeClient(){
                 //for setting icon to our search bar
@@ -114,6 +132,7 @@ class BrowseFragment(private var urlNew: String) : Fragment() {
                         }
                     }catch (e: Exception){}
                 }
+
 
                 override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
                     super.onShowCustomView(view, callback)
